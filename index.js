@@ -1,11 +1,23 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const fetch = require('node-fetch');
+const express = require('express');
 
+const app = express();
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
 });
 
 const webhookUrl = process.env.WEBHOOK_URL;
+
+// Basit bir web sunucusu (uyku modunu önlemek için)
+app.get('/ping', (req, res) => {
+    res.send('Bot aktif!');
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Web sunucusu ${port} portunda çalışıyor`);
+});
 
 client.once('ready', () => {
     console.log(`${client.user.tag} olarak giriş yapıldı!`);
@@ -13,7 +25,7 @@ client.once('ready', () => {
 
 client.on('guildMemberAdd', (member) => {
     const payload = {
-        content: `${member.user.tag} sunucuya katıldı! Hoş geldin!`
+        content: `${member.user.toString()} Hoş geldin!`
     };
     fetch(webhookUrl, {
         method: 'POST',
