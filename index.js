@@ -25,7 +25,7 @@ client.once('ready', () => {
 
 client.on('guildMemberAdd', (member) => {
     const payload = {
-        content: `${member.user.toString()} Hoş geldin!`
+        content: `${member.user.toString()} sunucuya giriş yaptı!`
     };
     fetch(webhookUrl, {
         method: 'POST',
