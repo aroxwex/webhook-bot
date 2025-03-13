@@ -5,13 +5,17 @@ const fs = require('fs'); // Dosya işlemleri için Node.js'in fs modülünü ek
 
 const app = express();
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages, // Mesajları dinlemek için
+        GatewayIntentBits.MessageContent // Mesaj içeriğini okumak için
+    ]
 });
 
 const webhookUrl = process.env.WEBHOOK_URL;
 
 const targetRoleId = '1348485469742170204'; // Hedef rolün ID'sini buraya ekle
-// Önceki üyeleri saklamak için bir JSON dosyası kullanacağız
 const membersFile = 'members.json';
 
 // JSON dosyasını kontrol et ve yoksa oluştur
@@ -47,10 +51,10 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    // Sadece sunucu sahibi kontrolü
-    if (message.author.id !== message.guild.ownerId) {
-        return message.reply('Bu komutu sadece sunucu sahibi kullanabilir!');
-    }
+    // Geçici olarak sunucu sahibi kontrolünü kaldırıyoruz (test için)
+    // if (message.author.id !== message.guild.ownerId) {
+    //     return message.reply('Bu komutu sadece sunucu sahibi kullanabilir!');
+    // }
 
     // kanallarigizle komutu
     if (command === 'kanallarigizle') {
@@ -58,7 +62,6 @@ client.on('messageCreate', async message => {
             return message.reply('Lütfen bir rol etiketleyin! Örnek: `-kanallarigizle @Kayıtsız`');
         }
 
-        // Rolü bul
         const roleMention = args[0].match(/<@&(\d+)>/);
         if (!roleMention) {
             return message.reply('Geçerli bir rol etiketleyin!');
@@ -72,11 +75,10 @@ client.on('messageCreate', async message => {
         }
 
         try {
-            // Tüm kanallarda izni güncelle
             const channels = message.guild.channels.cache;
             for (const channel of channels.values()) {
                 await channel.permissionOverwrites.edit(role, {
-                    ViewChannel: false, // Kanalları Görüntüle iznini devre dışı
+                    ViewChannel: false,
                 }, 'Kanal görüntüleme izni kaldırıldı');
             }
 
@@ -87,11 +89,12 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // Yeni ping komutu
+    // ping komutu
     if (command === 'ping') {
-        if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-            return message.reply('Bu komutu kullanmak için yönetici yetkisine sahip olmalısınız!');
-        }
+        // Yönetici kontrolünü test için geçici olarak kaldırabiliriz
+        // if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        //     return message.reply('Bu komutu kullanmak için yönetici yetkisine sahip olmalısınız!');
+        // }
 
         const ping = client.ws.ping;
         return message.reply(`Botun pingi: ${ping}ms`);
@@ -102,12 +105,10 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     const hadRoleBefore = oldMember.roles.cache.has(targetRoleId);
     const hasRoleNow = newMember.roles.cache.has(targetRoleId);
 
-    // Rolü ilk kez aldıysa (eskiden yoksa, şimdi varsa)
     if (!hadRoleBefore && hasRoleNow) {
         try {
             let members = JSON.parse(await fs.promises.readFile(membersFile, 'utf-8'));
             if (!members.includes(newMember.id)) {
-                // İlk kez rol aldı, hoş geldin mesajı gönder
                 members.push(newMember.id);
                 await fs.promises.writeFile(membersFile, JSON.stringify(members, null, 2));
 
