@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const fetch = require('node-fetch');
 const express = require('express');
 const fs = require('fs'); // Dosya işlemleri için Node.js'in fs modülünü ekliyoruz
@@ -35,6 +35,56 @@ app.listen(port, () => {
 
 client.once('ready', () => {
     console.log(`${client.user.tag} olarak giriş yapıldı!`);
+});
+
+const prefix = '-'; // Prefix tanımla
+
+// Komut işleyicisi
+client.on('messageCreate', async message => {
+    if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    // Sadece sunucu sahibi kontrolü
+    if (message.author.id !== message.guild.ownerId) {
+        return message.reply('Bu komutu sadece sunucu sahibi kullanabilir!');
+    }
+
+    // kanallarigizle komutu
+    if (command === 'kanallarigizle') {
+        if (!args[0]) {
+            return message.reply('Lütfen bir rol etiketleyin! Örnek: `!kanallarigizle @Kayıtsız`');
+        }
+
+        // Rolü bul
+        const roleMention = args[0].match(/<@&(\d+)>/);
+        if (!roleMention) {
+            return message.reply('Geçerli bir rol etiketleyin!');
+        }
+
+        const roleId = roleMention[1];
+        const role = message.guild.roles.cache.get(roleId);
+
+        if (!role) {
+            return message.reply('Belirtilen rol bulunamadı!');
+        }
+
+        try {
+            // Tüm kanallarda izni güncelle
+            const channels = message.guild.channels.cache;
+            for (const channel of channels.values()) {
+                await channel.permissionOverwrites.edit(role, {
+                    ViewChannel: false, // Kanalları Görüntüle iznini devre dışı
+                }, 'Kanal görüntüleme izni kaldırıldı');
+            }
+
+            message.reply(`\`${role.name}\` rolü için tüm kanallarda "Kanalları Görüntüle" izni devre dışı bırakıldı!`);
+        } catch (error) {
+            console.error(error);
+            message.reply('Bir hata oluştu, lütfen bot izinlerini kontrol et!');
+        }
+    }
 });
 
 client.on('guildMemberAdd', async (member) => {
