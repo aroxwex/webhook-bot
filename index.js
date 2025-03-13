@@ -20,9 +20,6 @@ if (!fs.existsSync(membersFile)) {
 }
 
 
-// Web sunucusu (uyku modunu önlemek için)
-app.get('/', (req, res) => res.send('Ana sayfa! Bot çalışıyor.'));
-app.listen(process.env.PORT || 3000, () => console.log('Web sunucusu çalışıyor'));
 
 // Basit bir web sunucusu (uyku modunu önlemek için)
 app.get('/ping', (req, res) => {
