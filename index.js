@@ -10,6 +10,7 @@ const client = new Client({
 
 const webhookUrl = process.env.WEBHOOK_URL;
 
+const targetRoleId = '1348485469742170204'; // Hedef rolün ID'sini buraya ekle
 // Önceki üyeleri saklamak için bir JSON dosyası kullanacağız
 const membersFile = 'members.json';
 
@@ -17,6 +18,11 @@ const membersFile = 'members.json';
 if (!fs.existsSync(membersFile)) {
     fs.writeFileSync(membersFile, JSON.stringify([]));
 }
+
+
+// Web sunucusu (uyku modunu önlemek için)
+app.get('/', (req, res) => res.send('Ana sayfa! Bot çalışıyor.'));
+app.listen(process.env.PORT || 3000, () => console.log('Web sunucusu çalışıyor'));
 
 // Basit bir web sunucusu (uyku modunu önlemek için)
 app.get('/ping', (req, res) => {
@@ -87,29 +93,37 @@ client.on('messageCreate', async message => {
     }
 });
 
-client.on('guildMemberAdd', async (member) => {
-    // JSON dosyasını oku
-    let members = JSON.parse(fs.readFileSync(membersFile, 'utf-8'));
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+    const hadRoleBefore = oldMember.roles.cache.has(targetRoleId);
+    const hasRoleNow = newMember.roles.cache.has(targetRoleId);
 
-    // Üye daha önce kaydedilmiş mi kontrol et
-    if (members.includes(member.id)) {
-        console.log(`${member.user.tag} daha önce sunucuya katılmış, mesaj gönderilmedi.`);
-        return; // Eğer üye daha önce katıldıysa, mesaj gönderme
+    // Rolü ilk kez aldıysa (eskiden yoksa, şimdi varsa)
+    if (!hadRoleBefore && hasRoleNow) {
+        try {
+            let members = JSON.parse(await fs.readFile(membersFile, 'utf-8'));
+            if (!members.includes(newMember.id)) {
+                // İlk kez rol aldı, hoş geldin mesajı gönder
+                members.push(newMember.id);
+                await fs.writeFile(membersFile, JSON.stringify(members, null, 2));
+
+                if (!webhookUrl) {
+                    console.error('Webhook URL tanımlı değil!');
+                    return;
+                }
+
+                const payload = {
+                    content: `${newMember.user.toString()} sunucuya giriş yaptı!`
+                };
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.error('Webhook hatası:', err));
+            }
+        } catch (err) {
+            console.error('Hata:', err);
+        }
     }
-
-    // Üye ilk kez katıldı, ID'sini kaydet
-    members.push(member.id);
-    fs.writeFileSync(membersFile, JSON.stringify(members, null, 2));
-
-    // Webhook mesajını gönder
-    const payload = {
-        content: `${member.user.toString()} sunucuya giriş yaptı!`
-    };
-    fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).catch(err => console.error('Webhook hatası:', err));
 });
 
 client.login(process.env.BOT_TOKEN);
