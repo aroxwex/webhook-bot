@@ -19,8 +19,6 @@ if (!fs.existsSync(membersFile)) {
     fs.writeFileSync(membersFile, JSON.stringify([]));
 }
 
-
-
 // Basit bir web sunucusu (uyku modunu önlemek için)
 app.get('/ping', (req, res) => {
     res.send('Bot aktif!');
@@ -57,7 +55,7 @@ client.on('messageCreate', async message => {
     // kanallarigizle komutu
     if (command === 'kanallarigizle') {
         if (!args[0]) {
-            return message.reply('Lütfen bir rol etiketleyin! Örnek: `!kanallarigizle @Kayıtsız`');
+            return message.reply('Lütfen bir rol etiketleyin! Örnek: `-kanallarigizle @Kayıtsız`');
         }
 
         // Rolü bul
@@ -107,11 +105,11 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
     // Rolü ilk kez aldıysa (eskiden yoksa, şimdi varsa)
     if (!hadRoleBefore && hasRoleNow) {
         try {
-            let members = JSON.parse(await fs.readFile(membersFile, 'utf-8'));
+            let members = JSON.parse(await fs.promises.readFile(membersFile, 'utf-8'));
             if (!members.includes(newMember.id)) {
                 // İlk kez rol aldı, hoş geldin mesajı gönder
                 members.push(newMember.id);
-                await fs.writeFile(membersFile, JSON.stringify(members, null, 2));
+                await fs.promises.writeFile(membersFile, JSON.stringify(members, null, 2));
 
                 if (!webhookUrl) {
                     console.error('Webhook URL tanımlı değil!');
