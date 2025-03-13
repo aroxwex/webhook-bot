@@ -8,8 +8,8 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages, // Mesajları dinlemek için
-        GatewayIntentBits.MessageContent // Mesaj içeriğini okumak için
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
     ]
 });
 
@@ -51,11 +51,6 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    // Geçici olarak sunucu sahibi kontrolünü kaldırıyoruz (test için)
-    // if (message.author.id !== message.guild.ownerId) {
-    //     return message.reply('Bu komutu sadece sunucu sahibi kullanabilir!');
-    // }
-
     // kanallarigizle komutu
     if (command === 'kanallarigizle') {
         if (!args[0]) {
@@ -77,9 +72,12 @@ client.on('messageCreate', async message => {
         try {
             const channels = message.guild.channels.cache;
             for (const channel of channels.values()) {
-                await channel.permissionOverwrites.edit(role, {
-                    ViewChannel: false,
-                }, 'Kanal görüntüleme izni kaldırıldı');
+                // Yalnızca GuildChannel türündeki kanalları işle
+                if (channel.permissionOverwrites && typeof channel.permissionOverwrites.edit === 'function') {
+                    await channel.permissionOverwrites.edit(role, {
+                        ViewChannel: false,
+                    }, 'Kanal görüntüleme izni kaldırıldı');
+                }
             }
 
             message.reply(`\`${role.name}\` rolü için tüm kanallarda "Kanalları Görüntüle" izni devre dışı bırakıldı!`);
@@ -91,11 +89,6 @@ client.on('messageCreate', async message => {
 
     // ping komutu
     if (command === 'ping') {
-        // Yönetici kontrolünü test için geçici olarak kaldırabiliriz
-        // if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-        //     return message.reply('Bu komutu kullanmak için yönetici yetkisine sahip olmalısınız!');
-        // }
-
         const ping = client.ws.ping;
         return message.reply(`Botun pingi: ${ping}ms`);
     }
