@@ -88,6 +88,16 @@ client.on('messageCreate', async message => {
             message.reply('Bir hata oluştu, lütfen bot izinlerini kontrol et!');
         }
     }
+
+    // Yeni ping komutu
+    if (command === 'ping') {
+        if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return message.reply('Bu komutu kullanmak için yönetici yetkisine sahip olmalısınız!');
+        }
+
+        const ping = client.ws.ping;
+        return message.reply(`Botun pingi: ${ping}ms`);
+    }
 });
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
