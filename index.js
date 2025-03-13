@@ -53,6 +53,11 @@ client.on('messageCreate', async message => {
 
     // kanallarigizle komutu
     if (command === 'kanallarigizle') {
+        // Sadece sunucu sahibi kontrolü
+        if (message.author.id !== message.guild.ownerId) {
+            return message.reply('Bu komutu sadece sunucu sahibi kullanabilir!');
+        }
+
         if (!args[0]) {
             return message.reply('Lütfen bir rol etiketleyin! Örnek: `-kanallarigizle @Kayıtsız`');
         }
@@ -72,7 +77,6 @@ client.on('messageCreate', async message => {
         try {
             const channels = message.guild.channels.cache;
             for (const channel of channels.values()) {
-                // Yalnızca GuildChannel türündeki kanalları işle
                 if (channel.permissionOverwrites && typeof channel.permissionOverwrites.edit === 'function') {
                     await channel.permissionOverwrites.edit(role, {
                         ViewChannel: false,
