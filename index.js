@@ -13,8 +13,8 @@ const client = new Client({
 });
 
 // Sabit değerler
-const whitelistChannelName = '🏳️・whitelist'; // Whitelist kanalının adı
-const logChannelName = '🗒️・whitelist-log'; // Log kanalının adı
+const whitelistChannelName = 'whitelist'; // Test için basit isim
+const logChannelName = 'whitelist-log'; // Test için basit isim
 const authorizedRoleId = '1387885041115463830'; // Yetkili rolün ID'si
 const targetRoleId = '1387797050065682462'; // Verilecek rolün ID'si
 const reactionEmojiId = '1387809434675183668'; // Özel emoji ID'si (mc_onay)
@@ -38,10 +38,10 @@ app.listen(port, () => {
 client.once('ready', () => {
     console.log(`${client.user.tag} olarak giriş yapıldı!`);
     console.log('Botun bağlı olduğu sunucular:', client.guilds.cache.map(g => `${g.name} (${g.id})`).join(', '));
-    // Botun izinlerini kontrol et
+    // Botun izinlerini ve kanalları kontrol et
     client.guilds.cache.forEach(guild => {
         const botMember = guild.members.me;
-        console.log(`Sunucu: ${guild.name}`);
+        console.log(`Sunucu: ${guild.name} (${guild.id})`);
         console.log(`Botun izinleri: ${botMember.permissions.toArray().join(', ')}`);
         console.log(`Kanal listesi: ${guild.channels.cache.map(ch => `${ch.name} (${ch.id})`).join(', ')}`);
     });
@@ -49,7 +49,7 @@ client.once('ready', () => {
 
 // Mesaj olayını debug etmek için
 client.on('messageCreate', async message => {
-    console.log(`Mesaj alındı: ${message.author.tag} - ${message.content} (Kanal: ${message.channel.name}, Sunucu: ${message.guild?.name})`);
+    console.log(`Mesaj alındı: ${message.author.tag} - ${message.content} (Kanal: ${message.channel.name || 'Bilinmeyen'}, Sunucu: ${message.guild?.name || 'DM'})`);
     if (!message.content.startsWith('-') || message.author.bot) {
         console.log(`Mesaj filtrelendi: Bot mesajı=${message.author.bot}, Prefix uyuşuyor mu=${message.content.startsWith('-')}`);
         return;
@@ -57,18 +57,23 @@ client.on('messageCreate', async message => {
 
     const args = message.content.slice(1).trim().split(/ +/);
     const command = args.shift().toLowerCase();
-    console.log(`Komut çalıştırıldı: ${command} (Kullanıcı: ${message.author.tag})`);
+    console.log(`Komut çalıştırıldı: ${command} (Kullanıcı: ${message.author.tag}, Sunucu: ${message.guild?.name || 'DM'})`);
 
     if (command === 'ping') {
         console.log(`Ping komutu çalıştırıldı: ${message.author.tag}`);
         const ping = client.ws.ping;
-        return message.reply(`Botun pingi: ${ping}ms`);
+        try {
+            await message.reply(`Botun pingi: ${ping}ms`);
+            console.log('Ping cevabı gönderildi');
+        } catch (error) {
+            console.error('Ping cevabı gönderilemedi:', error);
+        }
     }
 });
 
 // Mesaj tepkisi eklendiğinde
 client.on('messageReactionAdd', async (reaction, user) => {
-    console.log(`Tepki alındı: ${user.tag} tarafından, emoji: ${reaction.emoji.name || reaction.emoji.id} (Kanal: ${reaction.message.channel.name}, Sunucu: ${reaction.message.guild?.name})`);
+    console.log(`Tepki alındı: ${user.tag} tarafından, emoji: ${reaction.emoji.name || reaction.emoji.id} (Kanal: ${reaction.message.channel.name || 'Bilinmeyen'}, Sunucu: ${reaction.message.guild?.name || 'DM'})`);
 
     // Mesajın tamamını al (kısmi tepki kontrolü)
     if (reaction.partial) {
@@ -105,8 +110,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
     }
 
     // Tepki doğru emoji mi kontrol et
-    if (reaction.emoji.id !== reactionEmojiId) {
-        console.log(`Yanlış emoji: ${reaction.emoji.id || reaction.emoji.name} (Beklenen: ${reactionEmojiId})`);
+    if (reaction.emoji.id !== reactionEmojiId && reaction.emoji.name !== 'mc_onay') {
+        console.log(`Yanlış emoji: ${reaction.emoji.id || reaction.emoji.name} (Beklenen: ${reactionEmojiId} veya mc_onay)`);
         return;
     }
 
